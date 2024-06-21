@@ -99,9 +99,9 @@ variable "destroy_data_events" {
 }
 
 variable "main_region" {
-    description = "Main region used for business and compute. Potentially change into a list and adjust subsequent logic"
-    type = string
-    default = "eu-central-1"
+  description = "Main region used for business and compute. Potentially change into a list and adjust subsequent logic"
+  type        = string
+  default     = "eu-central-1"
 }
 
 #these alerts can be extended, alert in case of big machine size etc.
