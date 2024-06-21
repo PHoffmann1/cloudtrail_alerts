@@ -309,3 +309,63 @@ resource "aws_cloudwatch_metric_alarm" "root_events_alerts" {
   alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
   ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
 }
+
+resource "aws_cloudwatch_log_metric_filter" "no_mfa_logins_filter" {
+  count          = local.no_mfa_login_alerts_final ? 1 : 0
+  name           = "noMFALoginFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{ ($.eventName = \"ConsoleLogin\") && ($.additionalEventData.MFAUsed != \"Yes\") && ($.userIdentity.type = \"IAMUser\") && ($.responseElements.ConsoleLogin = \"Success\") }"
+
+  metric_transformation {
+    name      = "noMFALoginFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "no_mfa_login_alerts" {
+  count               = local.no_mfa_login_alerts_final ? 1 : 0
+  alarm_name          = "noMFALoginAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.no_mfa_logins_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.no_mfa_logins_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors logins without MFA."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "failed_login_events_filter" {
+  count          = local.failed_login_final ? 1 : 0
+  name           = "failedLoginEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=ConsoleLogin) && ($.errorMessage=\"Failed authentication\")}"
+
+  metric_transformation {
+    name      = "failedLoginEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "failed_login_events_alerts" {
+  count               = local.failed_login_final ? 1 : 0
+  alarm_name          = "failedLoginEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.failed_login_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.failed_login_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors failed Login Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
