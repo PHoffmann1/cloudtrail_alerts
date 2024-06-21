@@ -142,6 +142,12 @@ variable "route_table_events" {
   default     = false
 }
 
+variable "s3_events" {
+  description = "Enable alerts for potentially malicious s3 events - high volume warning - overlap with destroy data events"
+  type        = bool
+  default     = false
+}
+
 variable "security_group_events" {
   description = "Enable alerts for potentially malicious security group events - high volume warning"
   type        = bool
