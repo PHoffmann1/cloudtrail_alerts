@@ -23,6 +23,7 @@ locals {
   iam_events_final            = var.iam_events || var.high_volume
   nacl_events_final           = var.nacl_events || var.high_volume
   route_table_events_final    = var.route_table_events || var.high_volume
+  s3_events_final             = var.s3_events || var.high_volume
   security_group_events_final = var.security_group_events || var.high_volume
   vpc_events_final            = var.vpc_events || var.high_volume
 }
@@ -366,6 +367,311 @@ resource "aws_cloudwatch_metric_alarm" "failed_login_events_alerts" {
   threshold           = "1"
 
   alarm_description = "This alarm monitors failed Login Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "destroy_data_events_filter" {
+  count          = local.destroy_data_events_final ? 1 : 0
+  name           = "destroyDataEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{ ($.eventName = DeleteBucket)|| ($.eventName = DeleteObject)||($.eventName = DeleteDBInstance)||($.eventName = DeleteDBCluster)||($.eventName = DeleteDBSnapshot)||($.eventName = PutBucketLifecycle) }"
+
+  metric_transformation {
+    name      = "destroyDataEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "destroy_data_events_alerts" {
+  count               = local.destroy_data_events_final ? 1 : 0
+  alarm_name          = "destroyDataEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.destroy_data_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.destroy_data_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Events that destroy Data."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "compute_events_not_main_region_filter" {
+  count          = local.compute_not_main_region_final ? 1 : 0
+  name           = "ComputeEventsNotMainRegionFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{ ($.awsRegion != ${var.main_region})) && (($.eventName = RunInstances)|| ($.eventName = CreateStack)||($.eventName = CreateCluster) ) }"
+
+  metric_transformation {
+    name      = "ComputeEventsNotMainRegionFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "compute_events_not_main_region_alerts" {
+  count               = local.compute_not_main_region_final ? 1 : 0
+  alarm_name          = "ComputeEventsNotMainRegionAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.compute_events_not_main_region_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.compute_events_not_main_region_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Compute Events happening in regions that are not the main region."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+
+resource "aws_cloudwatch_log_metric_filter" "invoke_model_events_not_main_region_filter" {
+  count          = local.invoke_model_not_main_region_final ? 1 : 0
+  name           = "InvokeModelEventsNotMainRegionFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{ ($.awsRegion != ${var.main_region}) && (($.eventName = InvokeModel) || ($.eventName = InvokeModelWithResponseStream)) }"
+
+  metric_transformation {
+    name      = "InvokeModelEventsNotMainRegionFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "invoke_model_events_not_main_region_alerts" {
+  count               = local.invoke_model_not_main_region_final ? 1 : 0
+  alarm_name          = "InvokeModelEventsNotMainRegionAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.invoke_model_events_not_main_region_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.invoke_model_events_not_main_region_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Invoke Model Events that are happening in regions other than the main region."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+
+resource "aws_cloudwatch_log_metric_filter" "gateway_events_filter" {
+  count          = local.gateway_events_final ? 1 : 0
+  name           = "GatewayEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=CreateCustomerGateway) || ($.eventName=DeleteCustomerGateway) || ($.eventName=AttachInternetGateway) || ($.eventName=CreateInternetGateway) || ($.eventName=DeleteInternetGateway) || ($.eventName=DetachInternetGateway)}"
+
+  metric_transformation {
+    name      = "GatewayEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "gateway_events_alerts" {
+  count               = local.gateway_events_final ? 1 : 0
+  alarm_name          = "GatewayEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.gateway_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.gateway_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Gateway Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+
+resource "aws_cloudwatch_log_metric_filter" "iam_events_filter" {
+  count          = local.iam_events_final ? 1 : 0
+  name           = "IamEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=DeleteGroupPolicy) || ($.eventName=DeleteRolePolicy) || ($.eventName=DeleteUserPolicy) || ($.eventName=PutGroupPolicy) || ($.eventName=PutRolePolicy) || ($.eventName=PutUserPolicy) || ($.eventName=CreatePolicy) || ($.eventName=DeletePolicy) || ($.eventName=CreatePolicyVersion) || ($.eventName=DeletePolicyVersion) || ($.eventName=AttachRolePolicy) || ($.eventName=DetachRolePolicy) || ($.eventName=AttachUserPolicy) || ($.eventName=DetachUserPolicy) || ($.eventName=AttachGroupPolicy) || ($.eventName=DetachGroupPolicy)}"
+
+  metric_transformation {
+    name      = "IamEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "iam_events_alerts" {
+  count               = local.iam_events_final ? 1 : 0
+  alarm_name          = "IamEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.iam_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.iam_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors IAM Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+
+resource "aws_cloudwatch_log_metric_filter" "nacl_events_filter" {
+  count          = local.nacl_events_final ? 1 : 0
+  name           = "NaclEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=CreateNetworkAcl) || ($.eventName=CreateNetworkAclEntry) || ($.eventName=DeleteNetworkAcl) || ($.eventName=DeleteNetworkAclEntry) || ($.eventName=ReplaceNetworkAclEntry) || ($.eventName=ReplaceNetworkAclAssociation)}"
+
+  metric_transformation {
+    name      = "NaclEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "nacl_events_alerts" {
+  count               = local.nacl_events_final ? 1 : 0
+  alarm_name          = "NaclEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.nacl_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.nacl_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Nacl Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "route_table_events_filter" {
+  count          = local.route_table_events_final ? 1 : 0
+  name           = "RouteTableEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=CreateRoute) || ($.eventName=CreateRouteTable) || ($.eventName=ReplaceRoute) || ($.eventName=ReplaceRouteTableAssociation) || ($.eventName=DeleteRouteTable) || ($.eventName=DeleteRoute) || ($.eventName=DisassociateRouteTable)}"
+
+  metric_transformation {
+    name      = "RouteTableEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "route_table_events_alerts" {
+  count               = local.route_table_events_final ? 1 : 0
+  alarm_name          = "RouteTableEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.route_table_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.route_table_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Route Table Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "s3_events_filter" {
+  count          = local.s3_events_final ? 1 : 0
+  name           = "S3EventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventSource=s3.amazonaws.com) && (($.eventName=PutBucketAcl) || ($.eventName=PutBucketPolicy) || ($.eventName=PutBucketCors) || ($.eventName=PutBucketLifecycle) || ($.eventName=PutBucketReplication) || ($.eventName=DeleteBucketPolicy) || ($.eventName=DeleteBucketCors) || ($.eventName=DeleteBucketLifecycle) || ($.eventName=DeleteBucketReplication))}"
+
+  metric_transformation {
+    name      = "S3EventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "s3_events_alerts" {
+  count               = local.s3_events_final ? 1 : 0
+  alarm_name          = "S3EventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.s3_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.s3_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors S3 Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "security_group_events_filter" {
+  count          = local.security_group_events_final ? 1 : 0
+  name           = "SecurityGroupEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=AuthorizeSecurityGroupIngress) || ($.eventName=AuthorizeSecurityGroupEgress) || ($.eventName=RevokeSecurityGroupIngress) || ($.eventName=RevokeSecurityGroupEgress) || ($.eventName=CreateSecurityGroup) || ($.eventName=DeleteSecurityGroup)}"
+
+  metric_transformation {
+    name      = "SecurityGroupEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "security_group_events_alerts" {
+  count               = local.security_group_events_final ? 1 : 0
+  alarm_name          = "SecurityGroupEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.security_group_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.security_group_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors Security Group Events."
+  alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
+  ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
+}
+
+
+resource "aws_cloudwatch_log_metric_filter" "vpc_events_filter" {
+  count          = local.vpc_events_final ? 1 : 0
+  name           = "VpcEventsFilter"
+  log_group_name = var.cloudtrail_log_group_name
+
+  pattern = "{($.eventName=CreateVpc) || ($.eventName=DeleteVpc) || ($.eventName=ModifyVpcAttribute) || ($.eventName=AcceptVpcPeeringConnection) || ($.eventName=CreateVpcPeeringConnection) || ($.eventName=DeleteVpcPeeringConnection) || ($.eventName=RejectVpcPeeringConnection) || ($.eventName=AttachClassicLinkVpc) || ($.eventName=DetachClassicLinkVpc) || ($.eventName=DisableVpcClassicLink) || ($.eventName=EnableVpcClassicLink)}"
+
+  metric_transformation {
+    name      = "VpcEventsFilter"
+    namespace = "CloudTrailMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "vpc_events_alerts" {
+  count               = local.vpc_events_final ? 1 : 0
+  alarm_name          = "VpcEventsAlert"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = aws_cloudwatch_log_metric_filter.vpc_events_filter[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.vpc_events_filter[0].metric_transformation[0].namespace
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+
+  alarm_description = "This alarm monitors VPC Events."
   alarm_actions     = [aws_sns_topic.cloudtrail_alerts.arn]
   ok_actions        = [aws_sns_topic.cloudtrail_alerts.arn]
 }
