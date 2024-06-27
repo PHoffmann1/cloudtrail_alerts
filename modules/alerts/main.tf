@@ -3,17 +3,17 @@ provider "aws" {
 }
 
 locals {
-  org_alerts_final          = var.org_alerts || var.high_volume
-  get_tokens_final          = var.get_tokens || var.high_volume
-  idp_alerts_final          = var.idp_alerts || var.high_volume
-  sso_alerts_final          = var.sso_alerts || var.high_volume
-  cloudtrail_alerts_final   = var.cloudtrail_alerts || var.high_volume
-  guardduty_alerts_final    = var.guardduty_alerts || var.high_volume
-  config_alerts_final       = var.config_alerts || var.high_volume
-  kms_alerts_final          = var.kms_alerts || var.high_volume
-  root_alerts_final         = var.root_alerts || var.high_volume
-  no_mfa_login_alerts_final = var.no_mfa_login_alerts || var.high_volume
-  failed_login_final        = var.failed_login || var.high_volume
+  org_alerts_final          = var.org_alerts || var.low_volume
+  get_tokens_final          = var.get_tokens || var.low_volume
+  idp_alerts_final          = var.idp_alerts || var.low_volume
+  sso_alerts_final          = var.sso_alerts || var.low_volume
+  cloudtrail_alerts_final   = var.cloudtrail_alerts || var.low_volume
+  guardduty_alerts_final    = var.guardduty_alerts || var.low_volume
+  config_alerts_final       = var.config_alerts || var.low_volume
+  kms_alerts_final          = var.kms_alerts || var.low_volume
+  root_alerts_final         = var.root_alerts || var.low_volume
+  no_mfa_login_alerts_final = var.no_mfa_login_alerts || var.low_volume
+  failed_login_final        = var.failed_login || var.low_volume
 
   destroy_data_events_final          = var.destroy_data_events || var.medium_volume
   compute_not_main_region_final      = var.compute_not_main_region || var.medium_volume
